@@ -1,0 +1,49 @@
+#Configuration
+#============================================
+:local InterfaceName ""
+:local AddressListName ""
+:local UpdateIPv4 true
+:local UpdateIPv6 false
+#============================================
+:local IPv4Address
+:local IPv6Address
+:local IPv4AddressList
+:local IPv6AddressList
+
+:if ($UpdateIPv4) do={
+    #Get interface IPv4 address
+    :set IPv4Address [ /ip address get [/ip address find interface=$InterfaceName ] address ]
+    :set IPv4Address [ :pick $IPv4Address 0 [ :find $IPv4Address "/" ] ]
+    
+    #check if IPv4 list not exist create a new list
+    :if ([:len [/ip firewall address-list find list=$AddressListName]] = 0)\
+    do={/ip firewall address-list add address=$IPv4Address list=$AddressListName
+    } else={
+        #Get IPv4 address list address
+        :set IPv4AddressList [/ip firewall address-list get [find list=$AddressListName] address]
+    }
+
+    #check and update IPv4 address list
+    :if ($IPv4Address!=$IPv4AddressList) \
+    do={/ip firewall address-list set [find list=$AddressListName] address=$IPv4Address}
+}
+
+:if ($UpdateIPv6) do={
+    #Get interface IPv6 address
+    :set IPv6Address [ /ipv6 address get [/ipv6 address find where global and interface=$InterfaceName ] address ]
+    :set IPv6Address [ :pick $IPv6Address 0 [ :find $IPv6Address "/" ] ]
+    
+    #check if IPv6 list not exist create a new list
+    :if ([:len [/ipv6 firewall address-list find list=$AddressListName]] = 0)\
+    do={/ipv6 firewall address-list add address=$IPv6Address list=$AddressListName
+    } else={
+        #Get IPv6 address list address
+        :set IPv6AddressList [/ipv6 firewall address-list get [find list=$AddressListName] address]
+    }
+
+    #check and update IPv6 address list
+    :if ($IPv6Address!=$IPv6AddressList) \
+    do={/ipv6 firewall address-list set [find list=$AddressListName] address=$IPv6Address}
+}
+
+#ref: https://www.mobile01.com/topicdetail.php?f=110&t=4351800&fbclid=IwAR1FR8GBpz_xCs2TOuHMt3oGnfCItS1SPuVavadxt3XTfYabni1S-6Qqkrs#55432771

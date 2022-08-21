@@ -1,0 +1,89 @@
+#Define no.ip setting:
+#==================================================
+:local NoipUsername ""
+:local NoipPassword ""
+:local NoipDomain ""
+:local InterfaceName ""
+:local UpdateIPv4 true
+:local UpdateIPv6 false
+:local LogPrefix "DDNS no.ip"
+#==================================================
+#If you don't understand the following programs, not recommended to modify:
+#---------------------------------------------------------------------------
+#Define variable
+:global NoipDDNSPreviousIPv4
+:global NoipDDNSPreviousIPv6
+:local IPChanged false
+:local IPv4Address
+:local IPv6Address
+:local IPv4TmpStr
+:local IPv6TmpStr
+ 
+:if ([:len [/interface find name=$InterfaceName]] = 0)\
+do={log error ($LogPrefix." Interface ".$InterfaceName." not exist")
+} else={
+    #Define variable preset
+    :if ([ :typeof $NoipDDNSPreviousIPv4 ] = nil && $UpdateIPv4 ) do={ $NoipDDNSPreviousIPv4 "0.0.0.0" }
+    :if ([ :typeof $NoipDDNSPreviousIPv6 ] = nil && $UpdateIPv6 ) do={ $NoipDDNSPreviousIPv6 "::" }
+    
+    #Get interface IPv4 address
+    :if ($UpdateIPv4) do={
+        :set IPv4Address [ /ip address get [/ip address find interface=$InterfaceName ] address ]
+        :set IPv4Address [ :pick $IPv4Address 0 [ :find $IPv4Address "/" ] ]
+
+        ##Determine whether to update the IPv4
+        :if ([ :typeof $IPv4Address ] = nil ) do={
+            :log error ($LogPrefix." interface " . $InterfaceName . " IPv4 address not obtained")
+        } else={
+            :if ($IPv4Address != $NoipDDNSPreviousIPv4) do={
+                :set IPv4TmpStr "&myip=$IPv4Address"
+                :set IPChanged true
+            }
+        }
+    }
+
+    #Get interface IPv6 address
+    :if ($UpdateIPv6) do={
+        :set IPv6Address [ /ipv6 address get [/ipv6 address find where global and interface=$InterfaceName ] address ]
+        :set IPv6Address [ :pick $IPv6Address 0 [ :find $IPv6Address "/" ] ]
+
+        #Determine whether to update the IPv6
+        :if ([ :typeof $IPv6Address ] = nil ) do={
+            :log error ($LogPrefix." interface " . $InterfaceName . " IPv6 address not obtained")
+        } else={
+            :if ($IPv6Address != $NoipDDNSPreviousIPv6) do={
+                :set IPv6TmpStr "&myipv6=$IPv6Address"
+                :set IPChanged true
+            }
+        }
+    }
+
+    #update DDNS IP
+    :if ($IPChanged) do={
+        :local url ("https://dynupdate.no-ip.com/nic/update?hostname=$NoipDomain".$IPv4TmpStr.$IPv6TmpStr)
+
+        /tool fetch url=($url) user=$NoipUsername password=$NoipPassword mode=http dst-path=("noip-ddns-update-$NoipDomain-$InterfaceName")
+        
+        :delay 1
+
+        #File content
+        :local filestr [ /file get "noip-ddns-update-$NoipDomain-$InterfaceName" contents]
+        
+        #Delete file
+        :local filename [ /file find name="noip-ddns-update-$NoipDomain-$InterfaceName"]
+        /file remove $filename
+
+        #Update success or not
+        :if ( [ :find $filestr "good"] = "0" || [ :find $filestr "nochg"] = "0" ) do={
+            :log info ($LogPrefix." update success")
+            :if ($UpdateIPv4 && [ :typeof $IPv4Address ] != nil && [ :typeof $IPv4TmpStr ] != nil  ) do={
+                :set NoipDDNSPreviousIPv4 $IPv4Address
+            }
+            :if ($UpdateIPv6 && [ :typeof $IPv6Address ] != nil && [ :typeof $IPv6TmpStr ] != nil  ) do={
+                :set NoipDDNSPreviousIPv6 $IPv6Address
+            }
+        } else={
+            :log error ($LogPrefix." fail to update")
+        }
+    }
+}
