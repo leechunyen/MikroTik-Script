@@ -3,13 +3,13 @@
 :local NoipUsername ""
 :local NoipPassword ""
 :local NoipDomain ""
+:local UpdateIPv4 true
+:local UpdateIPv6 false
 :local LogPrefix "no.ip DDNS:"
 #================================================
 #If you don't understand the following programs, not recommended to modify:
 #------------------------------------------------------------------------------------------
 #Define IP variable
-:local UpdateIPv4 true
-:local UpdateIPv6 false
 :local NoipDDNSPreviousIPv4
 :local NoipDDNSPreviousIPv6
 :local IPChanged false
