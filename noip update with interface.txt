@@ -31,7 +31,7 @@ do={log error ($LogPrefix." Interface ".$InterfaceName." not exist")
         :set IPv4Address [ /ip address get [/ip address find interface=$InterfaceName ] address ]
         :set IPv4Address [ :pick $IPv4Address 0 [ :find $IPv4Address "/" ] ]
 
-        ##Determine whether to update the IPv4
+        #Determine whether to update the IPv4
         :if ([ :typeof $IPv4Address ] = nil ) do={
             :log error ($LogPrefix." interface " . $InterfaceName . " IPv4 address not obtained")
         } else={
